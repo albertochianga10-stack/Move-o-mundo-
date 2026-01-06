@@ -4,56 +4,60 @@ import { BookSummary } from "../types";
 export async function generateDeepSummary(title: string, author: string, recommendedBy: string[]): Promise<BookSummary> {
   const apiKey = process.env.API_KEY;
   
-  if (!apiKey) {
-    throw new Error("Configuração ausente: API_KEY não encontrada nas variáveis de ambiente.");
+  if (!apiKey || apiKey === "undefined") {
+    throw new Error("API_KEY não configurada no ambiente.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
 
-  const prompt = `Crie um resumo PROFUNDO, EXAUSTIVO e DETALHADO em PORTUGUÊS (mínimo 2000 palavras) para o livro "${title}" de ${author}.
+  const prompt = `Crie um resumo PROFUNDO e DETALHADO em PORTUGUÊS para o livro "${title}" de ${author}.
   Este livro é recomendado por: ${recommendedBy.join(', ')}.
   
-  Siga RIGOROSAMENTE a seguinte estrutura e forneça o máximo de detalhes possível para cada seção:
-  
-  1. Introdução ao livro: Apresentação do autor, contexto histórico e por que bilionários o recomendam.
-  2. Resumo detalhado do conteúdo principal: Explicação completa de conceitos-chave, ideias centrais e teorias organizadas logicamente.
-  3. Principais lições e insights aplicáveis: Estratégias de negócios, investimentos e conselhos práticos.
-  4. Exemplos e casos práticos: Histórias marcantes, estudos de caso ou analogias do livro.
-  5. Análise crítica: Pontos fortes, limitações e relevância atual no mercado.
-  6. Conexão com bilionários: Como e por que os bilionários citados usam esses conceitos.
-  7. Resumo final e aplicação prática: Síntese e passos concretos imediatos.
-  8. Recomendações complementares: Livros ou conceitos que expandem este aprendizado.
+  Retorne um JSON com as seguintes chaves:
+  - introduction: Contexto e importância.
+  - mainContent: Explicação densa dos pilares centrais.
+  - lessons: Lições estratégicas aplicáveis.
+  - caseStudies: Exemplos ou histórias reais.
+  - criticalAnalysis: Análise de impacto e relevância.
+  - billionaireConnection: Por que líderes de sucesso o estudam.
+  - finalSummary: Síntese e próximos passos.
+  - recommendations: Materiais complementares.
 
-  IMPORTANTE: Não economize palavras. Quero profundidade acadêmica mesclada com aplicabilidade prática.`;
+  O texto deve ser rico, profissional e de alto nível.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-    config: {
-      temperature: 0.7,
-      thinkingConfig: { thinkingBudget: 4000 },
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          introduction: { type: Type.STRING },
-          mainContent: { type: Type.STRING },
-          lessons: { type: Type.STRING },
-          caseStudies: { type: Type.STRING },
-          criticalAnalysis: { type: Type.STRING },
-          billionaireConnection: { type: Type.STRING },
-          finalSummary: { type: Type.STRING },
-          recommendations: { type: Type.STRING }
-        },
-        required: [
-          "introduction", "mainContent", "lessons", "caseStudies", 
-          "criticalAnalysis", "billionaireConnection", "finalSummary", "recommendations"
-        ]
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview", // Flash é ideal para resumos rápidos e estáveis
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            introduction: { type: Type.STRING },
+            mainContent: { type: Type.STRING },
+            lessons: { type: Type.STRING },
+            caseStudies: { type: Type.STRING },
+            criticalAnalysis: { type: Type.STRING },
+            billionaireConnection: { type: Type.STRING },
+            finalSummary: { type: Type.STRING },
+            recommendations: { type: Type.STRING }
+          },
+          required: [
+            "introduction", "mainContent", "lessons", "caseStudies", 
+            "criticalAnalysis", "billionaireConnection", "finalSummary", "recommendations"
+          ]
+        }
       }
-    }
-  });
+    });
 
-  const text = response.text;
-  if (!text) throw new Error("Falha ao gerar o resumo.");
-  return JSON.parse(text) as BookSummary;
+    const text = response.text;
+    if (!text) throw new Error("Resposta vazia da IA.");
+    
+    return JSON.parse(text) as BookSummary;
+  } catch (error) {
+    console.error("Erro no serviço Gemini:", error);
+    throw error;
+  }
 }
