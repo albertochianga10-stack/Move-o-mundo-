@@ -6,6 +6,7 @@ export interface Book {
   recommendedBy: string[];
   coverUrl: string;
   shortDescription: string;
+  predefinedSummary?: BookSummary;
 }
 
 export interface BookSummary {
