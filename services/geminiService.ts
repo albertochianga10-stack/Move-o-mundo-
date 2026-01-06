@@ -1,10 +1,15 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { BookSummary } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export async function generateDeepSummary(title: string, author: string, recommendedBy: string[]): Promise<BookSummary> {
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("Configuração ausente: API_KEY não encontrada nas variáveis de ambiente.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
   const prompt = `Crie um resumo PROFUNDO, EXAUSTIVO e DETALHADO em PORTUGUÊS (mínimo 2000 palavras) para o livro "${title}" de ${author}.
   Este livro é recomendado por: ${recommendedBy.join(', ')}.
   
